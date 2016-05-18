@@ -1,6 +1,6 @@
 package org.telegram.telegrambots.bots;
 
-import org.telegram.telegrambots.api.objects.Update;
+import org.telegram.telegrambots.api.objects.RequestResult;
 
 /**
  * @author Ruben Bermudez
@@ -13,7 +13,7 @@ public interface ITelegramLongPollingBot {
      * This method is called when receiving updates via GetUpdates method
      * @param update Update received
      */
-    void onUpdateReceived(Update update);
+    void onUpdateReceived(final RequestResult result);
 
     /**
      * Return bot username of this bot

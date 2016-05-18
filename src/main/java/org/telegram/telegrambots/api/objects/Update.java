@@ -1,16 +1,14 @@
 package org.telegram.telegrambots.api.objects;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
-
+import java.io.IOException;
 import org.json.JSONObject;
 import org.telegram.telegrambots.api.interfaces.IBotApiObject;
 import org.telegram.telegrambots.api.objects.inlinequery.ChosenInlineQuery;
 import org.telegram.telegrambots.api.objects.inlinequery.InlineQuery;
-
-import java.io.IOException;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 
 /**
  * @author Ruben Bermudez
@@ -19,6 +17,7 @@ import java.io.IOException;
  * Only one of the optional parameters can be present in any given update.
  * @date 20 of June of 2015
  */
+@SuppressWarnings("serial")
 public class Update implements IBotApiObject {
     private static final String UPDATEID_FIELD = "update_id";
     private static final String MESSAGE_FIELD = "message";
@@ -40,7 +39,7 @@ public class Update implements IBotApiObject {
         super();
     }
 
-    public Update(JSONObject jsonObject) {
+    public Update(final JSONObject jsonObject) {
         super();
         this.updateId = jsonObject.getInt(UPDATEID_FIELD);
         if (jsonObject.has(MESSAGE_FIELD)) {
@@ -94,7 +93,7 @@ public class Update implements IBotApiObject {
     }
 
     @Override
-    public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+    public void serialize(final JsonGenerator gen, final SerializerProvider serializers) throws IOException {
         gen.writeStartObject();
         gen.writeNumberField(UPDATEID_FIELD, updateId);
         if (message != null) {
@@ -114,7 +113,7 @@ public class Update implements IBotApiObject {
     }
 
     @Override
-    public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+    public void serializeWithType(final JsonGenerator gen, final SerializerProvider serializers, final TypeSerializer typeSer) throws IOException {
         serialize(gen, serializers);
     }
 

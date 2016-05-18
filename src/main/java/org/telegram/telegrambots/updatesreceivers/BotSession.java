@@ -1,7 +1,11 @@
 package org.telegram.telegrambots.updatesreceivers;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.TimeUnit;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
@@ -11,20 +15,12 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.telegram.telegrambots.BotLogger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.Constants;
 import org.telegram.telegrambots.api.methods.updates.GetUpdates;
-import org.telegram.telegrambots.api.objects.Update;
+import org.telegram.telegrambots.api.objects.RequestResult;
 import org.telegram.telegrambots.bots.ITelegramLongPollingBot;
-
-import java.io.IOException;
-import java.io.InvalidObjectException;
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author Ruben Bermudez
@@ -33,146 +29,72 @@ import java.util.concurrent.TimeUnit;
  * @date 20 of June of 2015
  */
 public class BotSession {
-    private static final String LOGTAG = "BOTSESSION";
+
+    private static final Logger log = LoggerFactory
+        .getLogger(BotSession.class.getName());
+
     private static final int SOCKET_TIMEOUT = 30 * 1000;
 
     private final ITelegramLongPollingBot callback;
-    private final ReaderThread readerThread;
-    private final HandlerThread handlerThread;
-    private final ConcurrentLinkedDeque<Update> receivedUpdates = new ConcurrentLinkedDeque<>();
     private final String token;
-    private int lastReceivedUpdate = 0;
-    private volatile boolean running = true;
-    private volatile CloseableHttpClient httpclient;
 
-
-    public BotSession(String token, ITelegramLongPollingBot callback) {
+    //TODO move arguments to startListen
+    public BotSession(final String token,
+        final ITelegramLongPollingBot callback) {
         this.token = token;
         this.callback = callback;
-        this.readerThread = new ReaderThread();
-        readerThread.setName(callback.getBotUsername() + " Telegram Connection");
-        this.readerThread.start();
-        this.handlerThread = new HandlerThread();
-        handlerThread.setName(callback.getBotUsername() + " Executor");
-        this.handlerThread.start();
-    }
-    
-    public void close()
-    {
-    	running = false;
-    	if(httpclient != null)
-    	{
-    		try
-			{
-				httpclient.close();
-				httpclient = null;
-            } catch (IOException e) {
-                BotLogger.severe(LOGTAG, e);
-            }
-    	}
-    	
+        startListen();
     }
 
-    private class ReaderThread extends Thread {
-
-		@Override
-        public void run() {
-            setPriority(Thread.MIN_PRIORITY);
-            while(running) {
-                GetUpdates request = new GetUpdates();
+    private void startListen() {
+        try (CloseableHttpClient httpclient = HttpClientBuilder.create()
+            .setSSLHostnameVerifier(new NoopHostnameVerifier())
+            .setConnectionTimeToLive(20, TimeUnit.SECONDS).build()) {
+            int lastReceivedUpdate = 0;
+            while (true) {
+                final GetUpdates request = new GetUpdates();
                 request.setLimit(100);
                 request.setTimeout(20);
                 request.setOffset(lastReceivedUpdate + 1);
-                httpclient = HttpClientBuilder.create().setSSLHostnameVerifier(new NoopHostnameVerifier()).setConnectionTimeToLive(20, TimeUnit.SECONDS).build();
-                String url = Constants.BASEURL + token + "/" + GetUpdates.PATH;
-                //config
-                RequestConfig defaultRequestConfig = RequestConfig.custom().build();
-                RequestConfig requestConfig = RequestConfig.copy(defaultRequestConfig)
-                        .setSocketTimeout(SOCKET_TIMEOUT)
-                        .setConnectTimeout(SOCKET_TIMEOUT)
-                        .setConnectionRequestTimeout(SOCKET_TIMEOUT).build();
-                //http client
-                HttpPost httpPost = new HttpPost(url);
+
+                final String url = Constants.BASEURL + token + "/"
+                    + GetUpdates.PATH;
+                // config
+                final RequestConfig defaultRequestConfig = RequestConfig
+                    .custom().build();
+                final RequestConfig requestConfig = RequestConfig
+                    .copy(defaultRequestConfig).setSocketTimeout(SOCKET_TIMEOUT)
+                    .setConnectTimeout(SOCKET_TIMEOUT)
+                    .setConnectionRequestTimeout(SOCKET_TIMEOUT).build();
+                // http client
+                final HttpPost httpPost = new HttpPost(url);
+                httpPost.addHeader("charset", StandardCharsets.UTF_8.name());
+                httpPost.setConfig(requestConfig);
+                httpPost.setEntity(new StringEntity(request.toJson().toString(),
+                    ContentType.APPLICATION_JSON));
+
                 try {
-                    httpPost.addHeader("charset", StandardCharsets.UTF_8.name());
-                    httpPost.setConfig(requestConfig);
-                    httpPost.setEntity(new StringEntity(request.toJson().toString(), ContentType.APPLICATION_JSON));
-                    HttpResponse response;
-                    response = httpclient.execute(httpPost);
-                    HttpEntity ht = response.getEntity();
+                    final HttpResponse response = httpclient.execute(httpPost);
+                    final HttpEntity ht = response.getEntity();
+                    final BufferedHttpEntity buf = new BufferedHttpEntity(ht);
+                    final String responseContent = EntityUtils.toString(buf,
+                        StandardCharsets.UTF_8);
+                    log.debug("Telegram response:{}", responseContent);
+                    final RequestResult rr = new RequestResult(responseContent);
 
-                    BufferedHttpEntity buf = new BufferedHttpEntity(ht);
-                    String responseContent = EntityUtils.toString(buf, StandardCharsets.UTF_8);
-
-                    try {
-                        JSONObject jsonObject = new JSONObject(responseContent);
-                        if (!jsonObject.getBoolean(Constants.RESPONSEFIELDOK)) {
-                            throw new InvalidObjectException(jsonObject.toString());
-                        }
-                        JSONArray jsonArray = jsonObject.getJSONArray(Constants.RESPONSEFIELDRESULT);
-                        if (jsonArray.length() != 0) {
-                            for (int i = 0; i < jsonArray.length(); i++) {
-                                Update update = new Update(jsonArray.getJSONObject(i));
-                                if (update.getUpdateId() > lastReceivedUpdate) {
-                                    lastReceivedUpdate = update.getUpdateId();
-                                    receivedUpdates.addFirst(update);
-                                }
-                            }
-                            synchronized (receivedUpdates) {
-                                receivedUpdates.notifyAll();
-                            }
-                        } else {
-                            try {
-                                synchronized (this) {
-                                    this.wait(500);
-                                }
-                            } catch (InterruptedException e) {
-                                BotLogger.severe(LOGTAG, e);
-                            }
-                        }
-                    } catch (InvalidObjectException | JSONException e) {
-                        BotLogger.severe(LOGTAG, e);
-                    }
-                } catch (Exception global) {
-                    BotLogger.severe(LOGTAG, global);
-                    try {
-                        synchronized (this) {
-                            this.wait(500);
-                        }
-                    } catch (InterruptedException e) {
-                        BotLogger.severe(LOGTAG, e);
-                    }
+                    callback.onUpdateReceived(rr);
+                    lastReceivedUpdate = rr.offset().orElse(lastReceivedUpdate);
+                } catch (final ClientProtocolException e) {
+                    log.error(e.getMessage(), e);
+                } catch (final IOException e) {
+                    log.error(e.getMessage(), e);
                 }
+
             }
+
+        } catch (final IOException exc) {
+            log.error(exc.getMessage(), exc);
         }
     }
 
-    private class HandlerThread extends Thread {
-        @Override
-        public void run() {
-            setPriority(Thread.MIN_PRIORITY);
-            while(running) {
-                try {
-                    Update update = receivedUpdates.pollLast();
-                    if (update == null) {
-                        synchronized (receivedUpdates) {
-                            try {
-                                receivedUpdates.wait();
-                            } catch (InterruptedException e) {
-                                BotLogger.severe(LOGTAG, e);
-                                continue;
-                            }
-                            update = receivedUpdates.pollLast();
-                            if (update == null) {
-                                continue;
-                            }
-                        }
-                    }
-                    callback.onUpdateReceived(update);
-                } catch (Exception e) {
-                    BotLogger.severe(LOGTAG, e);
-                }
-            }
-        }
-    }
 }

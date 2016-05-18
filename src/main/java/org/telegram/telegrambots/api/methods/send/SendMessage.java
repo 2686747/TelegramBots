@@ -1,17 +1,16 @@
 package org.telegram.telegrambots.api.methods.send;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
-
+import java.io.IOException;
+import javax.validation.constraints.NotNull;
 import org.json.JSONObject;
 import org.telegram.telegrambots.Constants;
 import org.telegram.telegrambots.api.methods.BotApiMethod;
 import org.telegram.telegrambots.api.methods.ParseMode;
 import org.telegram.telegrambots.api.objects.Message;
 import org.telegram.telegrambots.api.objects.replykeyboard.ReplyKeyboard;
-
-import java.io.IOException;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 
 /**
  * @author Ruben Bermudez
@@ -40,16 +39,24 @@ public class SendMessage extends BotApiMethod<Message> {
     private Boolean disableNotification;
     private Integer replayToMessageId; ///< Optional. If the message is a reply, ID of the original message
     private ReplyKeyboard replayMarkup; ///< Optional. JSON-serialized object for a custom reply keyboard
-
-    public SendMessage() {
+    
+    public SendMessage(final Long chatId, final String text) {
         super();
+        this.chatId = chatId.toString();
+        this.text = text;
+    }
+    
+
+    public SendMessage(@NotNull final Message message) {
+        this(message.getChatId(), message.getText());
+        
     }
 
     public String getChatId() {
         return chatId;
     }
 
-    public SendMessage setChatId(String chatId) {
+    public SendMessage setChatId(final String chatId) {
         this.chatId = chatId;
         return this;
     }
@@ -58,7 +65,7 @@ public class SendMessage extends BotApiMethod<Message> {
         return text;
     }
 
-    public SendMessage setText(String text) {
+    public SendMessage setText(final String text) {
         this.text = text;
         return this;
     }
@@ -67,7 +74,7 @@ public class SendMessage extends BotApiMethod<Message> {
         return replayToMessageId;
     }
 
-    public SendMessage setReplayToMessageId(Integer replayToMessageId) {
+    public SendMessage setReplayToMessageId(final Integer replayToMessageId) {
         this.replayToMessageId = replayToMessageId;
         return this;
     }
@@ -76,7 +83,7 @@ public class SendMessage extends BotApiMethod<Message> {
         return replayMarkup;
     }
 
-    public SendMessage setReplayMarkup(ReplyKeyboard replayMarkup) {
+    public SendMessage setReplayMarkup(final ReplyKeyboard replayMarkup) {
         this.replayMarkup = replayMarkup;
         return this;
     }
@@ -109,7 +116,7 @@ public class SendMessage extends BotApiMethod<Message> {
         return this;
     }
 
-    public SendMessage enableMarkdown(boolean enable) {
+    public SendMessage enableMarkdown(final boolean enable) {
         if (enable) {
             this.parseMode = ParseMode.MARKDOWN;
         } else {
@@ -118,7 +125,7 @@ public class SendMessage extends BotApiMethod<Message> {
         return this;
     }
 
-    public SendMessage enableHtml(boolean enable) {
+    public SendMessage enableHtml(final boolean enable) {
         if (enable) {
             this.parseMode = ParseMode.HTML;
         } else {
@@ -129,7 +136,7 @@ public class SendMessage extends BotApiMethod<Message> {
 
     @Override
     public JSONObject toJson() {
-        JSONObject jsonObject = new JSONObject();
+        final JSONObject jsonObject = new JSONObject();
         jsonObject.put(CHATID_FIELD, chatId);
         jsonObject.put(TEXT_FIELD, text);
         if (parseMode != null) {
@@ -157,7 +164,7 @@ public class SendMessage extends BotApiMethod<Message> {
     }
 
     @Override
-    public Message deserializeResponse(JSONObject answer) {
+    public Message deserializeResponse(final JSONObject answer) {
         if (answer.getBoolean(Constants.RESPONSEFIELDOK)) {
             return new Message(answer.getJSONObject(Constants.RESPONSEFIELDRESULT));
         }
@@ -165,7 +172,7 @@ public class SendMessage extends BotApiMethod<Message> {
     }
 
     @Override
-    public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+    public void serialize(final JsonGenerator gen, final SerializerProvider serializers) throws IOException {
         gen.writeStartObject();
         gen.writeStringField(METHOD_FIELD, PATH);
         gen.writeStringField(CHATID_FIELD, chatId);
@@ -192,7 +199,7 @@ public class SendMessage extends BotApiMethod<Message> {
     }
 
     @Override
-    public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+    public void serializeWithType(final JsonGenerator gen, final SerializerProvider serializers, final TypeSerializer typeSer) throws IOException {
         serialize(gen, serializers);
     }
 
