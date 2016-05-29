@@ -1,16 +1,14 @@
 package org.telegram.telegrambots.api.objects.inlinequery.result.chached;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
-
+import java.io.IOException;
 import org.json.JSONObject;
 import org.telegram.telegrambots.api.objects.inlinequery.inputmessagecontent.InputMessageContent;
 import org.telegram.telegrambots.api.objects.inlinequery.result.InlineQueryResult;
 import org.telegram.telegrambots.api.objects.replykeyboard.InlineKeyboardMarkup;
-
-import java.io.IOException;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 
 /**
  * @author Ruben Bermudez
@@ -55,7 +53,7 @@ public class InlineQueryResultCachedPhoto implements InlineQueryResult {
         return id;
     }
 
-    public InlineQueryResultCachedPhoto setId(String id) {
+    public InlineQueryResultCachedPhoto setId(final String id) {
         this.id = id;
         return this;
     }
@@ -64,7 +62,7 @@ public class InlineQueryResultCachedPhoto implements InlineQueryResult {
         return photoFileId;
     }
 
-    public InlineQueryResultCachedPhoto setPhotoFileId(String photoFileId) {
+    public InlineQueryResultCachedPhoto setPhotoFileId(final String photoFileId) {
         this.photoFileId = photoFileId;
         return this;
     }
@@ -73,7 +71,7 @@ public class InlineQueryResultCachedPhoto implements InlineQueryResult {
         return title;
     }
 
-    public InlineQueryResultCachedPhoto setTitle(String title) {
+    public InlineQueryResultCachedPhoto setTitle(final String title) {
         this.title = title;
         return this;
     }
@@ -82,7 +80,7 @@ public class InlineQueryResultCachedPhoto implements InlineQueryResult {
         return description;
     }
 
-    public InlineQueryResultCachedPhoto setDescription(String description) {
+    public InlineQueryResultCachedPhoto setDescription(final String description) {
         this.description = description;
         return this;
     }
@@ -91,7 +89,7 @@ public class InlineQueryResultCachedPhoto implements InlineQueryResult {
         return caption;
     }
 
-    public InlineQueryResultCachedPhoto setCaption(String caption) {
+    public InlineQueryResultCachedPhoto setCaption(final String caption) {
         this.caption = caption;
         return this;
     }
@@ -100,7 +98,7 @@ public class InlineQueryResultCachedPhoto implements InlineQueryResult {
         return inputMessageContent;
     }
 
-    public InlineQueryResultCachedPhoto setInputMessageContent(InputMessageContent inputMessageContent) {
+    public InlineQueryResultCachedPhoto setInputMessageContent(final InputMessageContent inputMessageContent) {
         this.inputMessageContent = inputMessageContent;
         return this;
     }
@@ -109,14 +107,14 @@ public class InlineQueryResultCachedPhoto implements InlineQueryResult {
         return replyMarkup;
     }
 
-    public InlineQueryResultCachedPhoto setReplyMarkup(InlineKeyboardMarkup replyMarkup) {
+    public InlineQueryResultCachedPhoto setReplyMarkup(final InlineKeyboardMarkup replyMarkup) {
         this.replyMarkup = replyMarkup;
         return this;
     }
 
     @Override
     public JSONObject toJson() {
-        JSONObject jsonObject = new JSONObject();
+        final JSONObject jsonObject = new JSONObject();
         jsonObject.put(TYPE_FIELD, type);
         jsonObject.put(ID_FIELD, this.id);
         jsonObject.put(PHOTOFILEID_FIELD, photoFileId);
@@ -130,10 +128,10 @@ public class InlineQueryResultCachedPhoto implements InlineQueryResult {
             jsonObject.put(CAPTION_FIELD, this.caption);
         }
         if (replyMarkup != null) {
-            jsonObject.put(REPLY_MARKUP_FIELD, replyMarkup);
+            jsonObject.put(REPLY_MARKUP_FIELD, replyMarkup.toJson());
         }
         if (inputMessageContent != null) {
-            jsonObject.put(INPUTMESSAGECONTENT_FIELD, inputMessageContent);
+            jsonObject.put(INPUTMESSAGECONTENT_FIELD, inputMessageContent.toJson());
         }
 
         return jsonObject;
@@ -145,7 +143,7 @@ input_message_content	InputMessageContent	Optional. Content of the message to be
      */
 
     @Override
-    public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
+    public void serialize(final JsonGenerator gen, final SerializerProvider serializers) throws IOException {
         gen.writeStartObject();
         gen.writeStringField(TYPE_FIELD, type);
         gen.writeStringField(ID_FIELD, id);
@@ -170,7 +168,7 @@ input_message_content	InputMessageContent	Optional. Content of the message to be
     }
 
     @Override
-    public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+    public void serializeWithType(final JsonGenerator gen, final SerializerProvider serializers, final TypeSerializer typeSer) throws IOException {
         serialize(gen, serializers);
     }
 
