@@ -1,16 +1,14 @@
 package org.telegram.telegrambots.api.objects;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
-
+import java.io.IOException;
 import org.json.JSONObject;
 import org.telegram.telegrambots.api.interfaces.IBotApiObject;
 import org.telegram.telegrambots.api.objects.inlinequery.ChosenInlineQuery;
 import org.telegram.telegrambots.api.objects.inlinequery.InlineQuery;
-
-import java.io.IOException;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 
 /**
  * @author Ruben Bermudez
@@ -27,7 +25,7 @@ public class Update implements IBotApiObject {
     private static final String CALLBACKQUERY_FIELD = "callback_query";
     private static final String EDITEDMESSAGE_FIELD = "edited_message";
     @JsonProperty(UPDATEID_FIELD)
-    private Integer updateId;
+    private final Integer updateId;
     @JsonProperty(MESSAGE_FIELD)
     private Message message; ///< Optional. New incoming message of any kind — text, photo, sticker, etc.
     @JsonProperty(INLINEQUERY_FIELD)
@@ -38,13 +36,10 @@ public class Update implements IBotApiObject {
     private CallbackQuery callbackQuery; ///< Optional. New incoming callback query
     @JsonProperty(EDITEDMESSAGE_FIELD)
     private Message editedMessage; ///< Optional. New version of a message that is known to the bot and was edited
+    private final JSONObject json;
 
-    public Update() {
-        super();
-    }
-
-    public Update(JSONObject jsonObject) {
-        super();
+    public Update(final JSONObject jsonObject) {
+        this.json = jsonObject;
         this.updateId = jsonObject.getInt(UPDATEID_FIELD);
         if (jsonObject.has(MESSAGE_FIELD)) {
             this.message = new Message(jsonObject.getJSONObject(MESSAGE_FIELD));
@@ -107,30 +102,13 @@ public class Update implements IBotApiObject {
         return editedMessage != null;
     }
     @Override
-    public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-        gen.writeStartObject();
-        gen.writeNumberField(UPDATEID_FIELD, updateId);
-        if (message != null) {
-            gen.writeObjectField(MESSAGE_FIELD, message);
-        }
-        if (inlineQuery != null) {
-            gen.writeObjectField(INLINEQUERY_FIELD, inlineQuery);
-        }
-        if (chosenInlineQuery != null) {
-            gen.writeObjectField(CHOSENINLINEQUERY_FIELD, chosenInlineQuery);
-        }
-        if (callbackQuery != null) {
-            gen.writeObjectField(CALLBACKQUERY_FIELD, callbackQuery);
-        }
-        if (editedMessage != null) {
-            gen.writeObjectField(EDITEDMESSAGE_FIELD, editedMessage);
-        }
-        gen.writeEndObject();
+    public void serialize(final JsonGenerator gen, final SerializerProvider serializers) throws IOException {
+        gen.writeString(this.json.toString());
         gen.flush();
     }
 
     @Override
-    public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+    public void serializeWithType(final JsonGenerator gen, final SerializerProvider serializers, final TypeSerializer typeSer) throws IOException {
         serialize(gen, serializers);
     }
 
@@ -144,5 +122,9 @@ public class Update implements IBotApiObject {
                 ", callbackQuery=" + callbackQuery +
                 ", editedMessage=" + editedMessage +
                 '}';
+    }
+
+    public final JSONObject getJson() {
+        return json;
     }
 }
